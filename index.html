@@ -1,46 +1,41 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IA con Parámetros - Tutor Educativo</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IA con Parámetros - Tutor Educativo</title>
 
-    <style>
-        :root {
-            --bg-dark: #131314;
-            --bg-sidebar: #1e1f20;
-            --accent-color: #744bfa;
-            --text-main: #e3e3e3;
-            --border-color: #3c4043;
-        }
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-        * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
+<style>
+:root {
+    --bg-dark:#131314;
+    --bg-sidebar:#1e1f20;
+    --accent-color:#744bfa;
+    --text-main:#e3e3e3;
+    --border-color:#3c4043;
+}
 
-        body { background:var(--bg-dark); color:var(--text-main); }
+*{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif;}
+body{background:var(--bg-dark);color:var(--text-main);}
 
-        .hidden { display:none; }
+.hidden{display:none;}
 
-        .dashboard-container { display:flex; height:100vh; }
+.dashboard-container{display:flex;height:100vh;}
 
-        .sidebar { width:250px; background:var(--bg-sidebar); padding:20px; }
+.sidebar{width:260px;background:var(--bg-sidebar);padding:20px;}
 
-        .content-area { flex:1; display:flex; flex-direction:column; }
+.content-area{flex:1;display:flex;flex-direction:column;}
 
-        .workspace { flex:1; padding:20px; overflow:auto; }
+.workspace{flex:1;padding:20px;overflow:auto;}
 
-        .message { margin:10px 0; padding:10px; border-radius:8px; }
+.message{padding:10px;margin:8px 0;border-radius:8px;}
+.user{background:#2b2a2a;text-align:right;}
+.ai{background:#1e1f20;border:1px solid var(--border-color);}
 
-        .user { background:#2b2a2a; text-align:right; }
-
-        .ai { background:#1e1f20; border:1px solid var(--border-color); }
-
-        .input-footer { padding:10px; }
-
-        input { width:80%; padding:10px; }
-
-        button { padding:10px; background:var(--accent-color); color:white; border:none; }
-    </style>
+input{padding:10px;width:80%;}
+button{padding:10px;background:var(--accent-color);color:white;border:none;cursor:pointer;}
+</style>
 </head>
 
 <body>
@@ -55,145 +50,151 @@
 <!-- APP -->
 <div id="main-platform" class="dashboard-container hidden">
 
-    <div class="sidebar">
-        <h3>IA Tutor</h3>
-        <p id="display-username"></p>
-    </div>
+<div class="sidebar">
+    <h3>IA Tutor</h3>
+    <p id="display-username"></p>
+</div>
 
-    <div class="content-area">
+<div class="content-area">
 
-        <div class="workspace" id="chat"></div>
+<div class="workspace" id="chat"></div>
 
-        <div class="input-footer">
-            <input id="input" placeholder="Escribe aquí...">
-            <button onclick="send()">Enviar</button>
-        </div>
+<div>
+    <input id="input" placeholder="Escribe aquí...">
+    <button onclick="send()">Enviar</button>
+</div>
 
-    </div>
+</div>
+
 </div>
 
 <script>
+
+/* =========================
+   BASE DE CONOCIMIENTO
+========================= */
+
 const DB = {
-    Mathematics: {
-        topic: "Álgebra",
-        hints: ["Haz la operación inversa", "Despeja la x"],
-        questions: ["¿Qué es una ecuación?", "¿Cómo despejas una x?"],
-        explanation: "Una ecuación es una igualdad que se mantiene balanceada."
+    English: {
+        present_simple: {
+            keywords:["habit","routine","every day","s","always"],
+            explanation:"Present simple is used for habits and routines.",
+            hint:"He/She/It adds 's' to verbs."
+        },
+        future_will: {
+            keywords:["future","will","prediction","promise","tomorrow"],
+            explanation:"Will is used for future actions and predictions.",
+            hint:"Will + verb base form."
+        }
     }
 };
 
-let subject = "Mathematics";
 let step = 1;
-let score = 0;
+let topic = "future_will";
 let nameUser = "";
+
+/* =========================
+   LOGIN
+========================= */
 
 function login(){
     nameUser = document.getElementById("student-name").value;
     document.getElementById("display-username").innerText = nameUser;
+
     document.getElementById("login-page").classList.add("hidden");
     document.getElementById("main-platform").classList.remove("hidden");
 }
 
-function send(){
-    const input = document.getElementById("input");
-    const text = input.value.trim();
-    if(!text) return;
+/* =========================
+   CHAT UI
+========================= */
 
-    addMsg(nameUser, text, "user");
-    input.value = "";
-
-    respond(text);
-}
-
-function addMsg(sender, text, type){
+function addMsg(sender,text,type){
     const div = document.createElement("div");
     div.className = "message " + type;
     div.innerHTML = `<b>${sender}</b><br>${text}`;
     document.getElementById("chat").appendChild(div);
 }
 
-function isGood(text){
+/* =========================
+   DETECCIÓN INTELIGENTE
+========================= */
+
+function isGoodAnswer(text, keywords){
     text = text.toLowerCase();
-    return text.includes("porque") ||
-           text.includes("es") ||
-           text.includes("x") ||
-           text.includes("ecuacion") ||
-           text.includes("dividir") ||
-           text.includes("multiplicar");
+    let score = 0;
+
+    for(let k of keywords){
+        if(text.includes(k)) score++;
+    }
+
+    return score >= 1;
 }
 
-function respond(userText){
-    const data = DB[subject];
-    const good = isGood(userText);
+function isEmpty(text){
+    return text.trim().length < 2;
+}
+
+/* =========================
+   RESPUESTA IA
+========================= */
+
+function send(){
+
+    const input = document.getElementById("input");
+    const text = input.value.trim();
+    input.value = "";
+
+    addMsg(nameUser,text,"user");
+
+    const data = DB.English[topic];
 
     if(step === 1){
         addMsg("Profesor IA",
-            `¡Vamos a pensar juntos!<br>
-            Tema: ${data.topic}<br>
-            Pregunta: ${data.questions[0]}`,
-            "ai"
-        );
+        "📘 Explica con tus palabras: " + topic,
+        "ai");
         step = 2;
+        return;
+    }
 
-    } else if(step === 2){
+    if(step === 2){
 
-        if(good){
-            score += 10;
+        if(isEmpty(text)){
+            addMsg("Profesor IA","⚠️ Escribe algo más completo.","ai");
+            return;
+        }
+
+        if(isGoodAnswer(text,data.keywords)){
             addMsg("Profesor IA",
-                `✔️ ¡Bien! Vas entendiendo.<br>
-                💡 ${data.hints[0]}<br>
-                Pregunta: ${data.questions[1]}`,
-                "ai"
-            );
+            "✔️ Bien! " + data.hint + "<br>Ahora mejora tu respuesta.",
+            "ai");
         } else {
             addMsg("Profesor IA",
-                `⚠️ Intenta otra vez.<br>
-                💡 Pista: ${data.hints[0]}`,
-                "ai"
-            );
+            "❌ No es correcto todavía.<br>💡 " + data.hint,
+            "ai");
         }
 
         step = 3;
+        return;
+    }
 
-    } else if(step === 3){
+    if(step === 3){
 
-        if(good){
-            score += 10;
+        if(isGoodAnswer(text,data.keywords)){
             addMsg("Profesor IA",
-                `🔥 ¡Muy bien!<br>
-                💡 ${data.hints[1]}<br>
-                Explícalo con tus palabras.`,
-                "ai"
-            );
+            "🔥 Excelente!<br>" + data.explanation,
+            "ai");
         } else {
             addMsg("Profesor IA",
-                `🤔 Piensa mejor.<br>
-                💡 ${data.hints[1]}`,
-                "ai"
-            );
-        }
-
-        step = 4;
-
-    } else {
-
-        if(good){
-            score += 20;
-            addMsg("Profesor IA",
-                `🎉 ¡BRILLANTE!<br>
-                ${data.explanation}`,
-                "ai"
-            );
-        } else {
-            addMsg("Profesor IA",
-                `📖 ${data.explanation}`,
-                "ai"
-            );
+            "🤔 Intenta otra vez.<br>" + data.hint,
+            "ai");
         }
 
         step = 1;
+        return;
     }
 }
+
 </script>
 
 </body>
